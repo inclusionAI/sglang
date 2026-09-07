@@ -895,6 +895,7 @@ class Envs:
     SGLANG_QUANT_ALLOW_DOWNCASTING = EnvBool(False)
     SGLANG_FP8_IGNORED_LAYERS = EnvStr("")
     SGLANG_FP4_IGNORED_LAYERS = EnvStr("")
+    SGLANG_ENABLE_FP8_LM_HEAD = EnvBool(False)
     # On by default; set SGLANG_ENABLE_FP8_GEMM_CONFIG_TUNE=0 as a kill switch.
     # Consults the tuned per-(N, K, M) Triton tile config table in
     # apply_fp8_linear. When a tuned config exists for this GPU / weight shape /

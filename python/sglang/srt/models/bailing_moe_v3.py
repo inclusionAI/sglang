@@ -1322,6 +1322,21 @@ class BailingMoeV3ForCausalLM(nn.Module):
         )
 
         if self.pp_group.is_last_rank:
+            lm_head_quant_config = quant_config
+            if envs.SGLANG_ENABLE_FP8_LM_HEAD.get():
+                from sglang.srt.layers.quantization.fp8 import Fp8Config
+
+                # The checkpoint stores lm_head in BF16. Quantize only this
+                # layer online after loading while preserving the checkpoint's
+                # serialized FP8/MXFP4 configuration for the rest of the model.
+                lm_head_quant_config = Fp8Config(
+                    is_checkpoint_fp8_serialized=False,
+                    activation_scheme="dynamic",
+                )
+                log_info_on_rank0(
+                    logger,
+                    "Online FP8 quantization enabled for lm_head.",
+                )
             self.lm_head = (
                 self.model.word_embeddings
                 if config.tie_word_embeddings
@@ -1332,8 +1347,8 @@ class BailingMoeV3ForCausalLM(nn.Module):
                     # path on Hopper; logits are still cast to fp32 for sampling
                     # in the logits processor. Accuracy-neutral on ling-v3.
                     params_dtype=torch.bfloat16,
-                    quant_config=quant_config,
-                    use_attn_tp_group=get_parallel().enable_dp_lm_head,
+                    quant_config=lm_head_quant_config,
+                    use_attn_tp_group=get_parallel().config.enable_dp_lm_head,
                 )
             )
             self.logits_processor = LogitsProcessor(config)

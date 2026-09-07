@@ -286,6 +286,14 @@ class BailingMoeForCausalLMNextN(nn.Module):
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
 
+    def set_lm_head_from_target(self, target_lm_head):
+        """Used by the eagle_worker. Share the target's whole lm_head module
+        rather than only its weight tensor, so a quantized lm_head - e.g. the
+        online FP8 one - keeps its matching quant_method on the draft side."""
+        if getattr(self.config, "tie_word_embeddings", False):
+            return
+        self.lm_head = target_lm_head
+
     def load_weights(self, weights: Iterable[Tuple[str, torch.Tensor]]):
         self.base_load_weights_func(self, weights, is_nextn=True)
 
